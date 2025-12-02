@@ -1,0 +1,112 @@
+## Build results
+bin/
+obj/
+out/
+AppPackages/
+BundleArtifacts/
+TestResults/
+*.log
+*.tlog
+
+## User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Visual Studio
+.vs/
+.vscode/
+
+## Rider
+.idea/
+*.sln.iml
+
+## NuGet
+*.nupkg
+*.snupkg
+.artifacts/
+packages/
+
+# NuGet v3
+project.lock.json
+project.fragment.lock.json
+
+# ASP.NET / .NET
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.json
+appsettings.local.json
+
+# Entity Framework migration logs
+*.dbmdl
+*.mdf
+*.ldf
+
+# Logs
+logs/
+*.log
+*.trace
+*.json.log
+
+# Publish output
+publish/
+artifacts/
+*.dll
+*.exe
+*.pdb
+
+## Test projects
+*.coverage
+*.coveragexml
+coverage/
+*.trx
+
+## Dotnet tools
+.dotnet/
+tools/
+
+## Docker
+docker-compose.override.yml
+docker-compose.local.yml
+**/docker-data/**
+**/docker-volumes/**
+**/Dockerfile.*.backup
+
+## Kubernetes / Helm
+helm-release.yaml
+*.tgz
+chart/.helmignore
+**/charts/
+**/templates/.rendered/
+values.local.yaml
+
+# Minikube cache
+.minikube/
+
+# Cluster certificate files
+*.crt
+*.pem
+*.key
+
+# RabbitMQ data
+rabbitmq-data/
+rabbitmq-logs/
+
+# Temp files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# node_modules (ako frontend postoji)
+node_modules/
+
+# Python (ako koristiš skripte)
+__pycache__/
+*.pyc
+
+# OS generirani fajlovi
+.DS_Store
+Thumbs.db
