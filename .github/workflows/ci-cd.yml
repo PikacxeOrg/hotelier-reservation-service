@@ -1,0 +1,143 @@
+name: Service CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    tags:
+      - "v*.*.*"
+  pull_request:
+    branches: [main, develop]
+
+env:
+  DOTNET_VERSION: "9.0.x"
+  CONFIGURATION: Release
+  REGISTRY: docker.io
+  DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+  PUSH_IMAGES: ${{ github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/tags/v')) }}
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore --locked-mode
+
+      - name: Build
+        run: dotnet build --no-restore -c ${{ env.CONFIGURATION }}
+
+      - name: Unit Tests
+        run: dotnet test --no-build -c ${{ env.CONFIGURATION }} --logger trx --collect:"XPlat Code Coverage"
+
+  integration-tests:
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore --locked-mode
+
+      - name: Build
+        run: dotnet build --no-restore -c ${{ env.CONFIGURATION }}
+
+      - name: Start infra via docker compose
+        if: hashFiles('docker-compose.yml') != ''
+        run: |
+          docker compose up -d postgres mongodb rabbitmq
+          # Wait for services to be healthy
+          for service in postgres mongodb rabbitmq; do
+            timeout 60 bash -c "until docker compose ps $service | grep 'Up.*healthy'; do sleep 2; done" || \
+            timeout 60 bash -c "until docker compose ps $service | grep 'Up'; do sleep 2; done"
+          done
+          docker compose ps
+
+      - name: Run Integration Tests
+        if: hashFiles('docker-compose.yml') != ''
+        run: dotnet test --no-build -c ${{ env.CONFIGURATION }} --logger trx
+
+      - name: Tear down compose infra
+        if: always() && hashFiles('docker-compose.yml') != ''
+        run: docker compose down -v
+
+  docker-build-push:
+    needs: [build-test, integration-tests]
+    runs-on: ubuntu-latest
+    if: ${{ env.PUSH_IMAGES == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # For better git versioning
+
+      - name: Set version tags
+        id: ver
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+            echo "tags=${VERSION},latest" >> $GITHUB_OUTPUT
+          else
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            echo "version=${BRANCH}" >> $GITHUB_OUTPUT
+            echo "tags=${BRANCH}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker Buildx setup
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: buildx-${{ runner.os }}-${{ hashFiles('**/Dockerfile', '**/docker-compose*.yml') }}
+          restore-keys: |
+            buildx-${{ runner.os }}-
+
+      - name: Build and Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.DOCKERHUB_USER }}/${{ github.event.repository.name }}:${{ steps.ver.outputs.tags }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          labels: |
+            org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+            org.opencontainers.image.version=${{ steps.ver.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
