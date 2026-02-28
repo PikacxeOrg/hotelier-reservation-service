@@ -44,7 +44,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddMassTransit(x =>
 {
-    x.AddConsumers(typeof(Program).Assembly);
+    x.AddConsumers(typeof(ReservationServiceInfrastructure).Assembly);
 
     x.UsingRabbitMq((context, cfg) =>
     {

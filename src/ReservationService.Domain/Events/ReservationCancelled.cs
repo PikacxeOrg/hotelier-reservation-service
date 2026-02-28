@@ -1,4 +1,4 @@
-namespace ReservationService.Domain;
+namespace Hotelier.Events;
 
 /// <summary>
 /// Published when a guest cancels an approved reservation.
@@ -8,9 +8,9 @@ namespace ReservationService.Domain;
 public record ReservationCancelled
 {
     public Guid ReservationId { get; init; }
-    public Guid UserId { get; init; }
-    public Guid AccommodationId { get; init; }
+    public Guid GuestId { get; init; }
     public Guid HostId { get; init; }
+    public Guid AccommodationId { get; init; }
     public DateTime FromDate { get; init; }
     public DateTime ToDate { get; init; }
     public DateTime Timestamp { get; init; } = DateTime.UtcNow;
