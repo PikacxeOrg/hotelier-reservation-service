@@ -5,7 +5,7 @@ namespace ReservationService.Domain;
 /// </summary>
 public interface IAvailabilityServiceClient
 {
-    Task<AvailabilityCheckResult> CheckAvailabilityAsync(Guid accommodationId, DateTime checkIn, DateTime checkOut);
+    Task<AvailabilityCheckResult> CheckAvailabilityAsync(Guid accommodationId, DateOnly checkIn, DateOnly checkOut);
 }
 
 public class AvailabilityCheckResult

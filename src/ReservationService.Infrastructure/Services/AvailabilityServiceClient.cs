@@ -18,7 +18,7 @@ public class AvailabilityServiceClient(
     };
 
     public async Task<AvailabilityCheckResult> CheckAvailabilityAsync(
-        Guid accommodationId, DateTime checkIn, DateTime checkOut)
+        Guid accommodationId, DateOnly checkIn, DateOnly checkOut)
     {
         try
         {

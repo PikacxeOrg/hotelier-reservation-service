@@ -27,7 +27,7 @@ public class ReservationsInternalController(
     [HttpGet("can-delete/{userId:guid}")]
     public async Task<IActionResult> CanDeleteUser(Guid userId, [FromQuery] string userType)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         int activeCount;
 
@@ -71,8 +71,8 @@ public class ReservationsInternalController(
     [HttpGet("has-reservations")]
     public async Task<IActionResult> HasReservationsInPeriod(
         [FromQuery] Guid accommodationId,
-        [FromQuery] DateTime fromDate,
-        [FromQuery] DateTime toDate)
+        [FromQuery] DateOnly fromDate,
+        [FromQuery] DateOnly toDate)
     {
         var count = await db.Reservations.CountAsync(r =>
             r.AccommodationId == accommodationId
