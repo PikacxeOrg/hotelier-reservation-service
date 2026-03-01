@@ -8,10 +8,10 @@ public class CreateReservationRequest
     public Guid AccommodationId { get; set; }
 
     [Required]
-    public DateTime FromDate { get; set; }
+    public DateOnly FromDate { get; set; }
 
     [Required]
-    public DateTime ToDate { get; set; }
+    public DateOnly ToDate { get; set; }
 
     [Required]
     [Range(1, 100)]

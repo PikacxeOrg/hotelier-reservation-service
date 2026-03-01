@@ -39,7 +39,7 @@ public class ReservationsController(
         if (request.FromDate >= request.ToDate)
             return BadRequest(new { message = "FromDate must be before ToDate." });
 
-        if (request.FromDate.Date < DateTime.UtcNow.Date)
+        if (request.FromDate < DateOnly.FromDateTime(DateTime.UtcNow))
             return BadRequest(new { message = "Cannot create reservations in the past." });
 
         // Fetch accommodation details (HostId, AutoApproval, guest limits)
@@ -226,7 +226,7 @@ public class ReservationsController(
             return Conflict(new { message = "Only approved reservations can be cancelled." });
 
         // Spec 1.9: at least 1 day before start
-        if (reservation.FromDate.Date <= DateTime.UtcNow.Date.AddDays(1))
+        if (reservation.FromDate <= DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1))
             return Conflict(new { message = "Cancellation must be at least 1 day before the start date." });
 
         reservation.Status = ReservationStatus.Cancelled;
@@ -370,7 +370,7 @@ public class ReservationsController(
                 r.UserId == guestId
                 && r.HostId == targetId
                 && r.Status == ReservationStatus.Approved
-                && r.ToDate < DateTime.UtcNow);
+                && r.ToDate < DateOnly.FromDateTime(DateTime.UtcNow));
         }
         else
         {
@@ -379,7 +379,7 @@ public class ReservationsController(
                 r.UserId == guestId
                 && r.AccommodationId == targetId
                 && r.Status == ReservationStatus.Approved
-                && r.ToDate < DateTime.UtcNow);
+                && r.ToDate < DateOnly.FromDateTime(DateTime.UtcNow));
         }
 
         return Ok(new { hasCompleted });
