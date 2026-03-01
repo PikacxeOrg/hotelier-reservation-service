@@ -56,8 +56,8 @@ public class ReservationsInternalControllerTests : IDisposable
             UserId = guestId,
             AccommodationId = Guid.NewGuid(),
             HostId = Guid.NewGuid(),
-            FromDate = DateTime.UtcNow.AddDays(5),
-            ToDate = DateTime.UtcNow.AddDays(10),
+            FromDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(5),
+            ToDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(10),
             NumOfGuests = 2,
             Status = ReservationStatus.Approved
         });
@@ -81,8 +81,8 @@ public class ReservationsInternalControllerTests : IDisposable
             UserId = guestId,
             AccommodationId = Guid.NewGuid(),
             HostId = Guid.NewGuid(),
-            FromDate = DateTime.UtcNow.AddDays(-2),
-            ToDate = DateTime.UtcNow.AddDays(3), // still ongoing
+            FromDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-2),
+            ToDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(3), // still ongoing
             NumOfGuests = 1,
             Status = ReservationStatus.Approved
         });
@@ -104,8 +104,8 @@ public class ReservationsInternalControllerTests : IDisposable
             UserId = guestId,
             AccommodationId = Guid.NewGuid(),
             HostId = Guid.NewGuid(),
-            FromDate = DateTime.UtcNow.AddDays(-10),
-            ToDate = DateTime.UtcNow.AddDays(-3), // in the past
+            FromDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-10),
+            ToDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-3), // in the past
             NumOfGuests = 1,
             Status = ReservationStatus.Approved
         });
@@ -128,8 +128,8 @@ public class ReservationsInternalControllerTests : IDisposable
             UserId = guestId,
             AccommodationId = Guid.NewGuid(),
             HostId = Guid.NewGuid(),
-            FromDate = DateTime.UtcNow.AddDays(5),
-            ToDate = DateTime.UtcNow.AddDays(10),
+            FromDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(5),
+            ToDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(10),
             NumOfGuests = 1,
             Status = ReservationStatus.Pending
         });
@@ -151,8 +151,8 @@ public class ReservationsInternalControllerTests : IDisposable
             UserId = guestId,
             AccommodationId = Guid.NewGuid(),
             HostId = Guid.NewGuid(),
-            FromDate = DateTime.UtcNow.AddDays(5),
-            ToDate = DateTime.UtcNow.AddDays(10),
+            FromDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(5),
+            ToDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(10),
             NumOfGuests = 1,
             Status = ReservationStatus.Cancelled
         });
@@ -190,8 +190,8 @@ public class ReservationsInternalControllerTests : IDisposable
             UserId = Guid.NewGuid(),
             AccommodationId = Guid.NewGuid(),
             HostId = hostId,
-            FromDate = DateTime.UtcNow.AddDays(5),
-            ToDate = DateTime.UtcNow.AddDays(10),
+            FromDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(5),
+            ToDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(10),
             NumOfGuests = 2,
             Status = ReservationStatus.Approved
         });
@@ -216,8 +216,8 @@ public class ReservationsInternalControllerTests : IDisposable
             UserId = Guid.NewGuid(),
             AccommodationId = Guid.NewGuid(),
             HostId = hostId,
-            FromDate = DateTime.UtcNow.AddDays(5),
-            ToDate = DateTime.UtcNow.AddDays(10),
+            FromDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(5),
+            ToDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(10),
             NumOfGuests = 1,
             Status = ReservationStatus.Pending
         });
@@ -239,8 +239,8 @@ public class ReservationsInternalControllerTests : IDisposable
             UserId = Guid.NewGuid(),
             AccommodationId = Guid.NewGuid(),
             HostId = hostId,
-            FromDate = DateTime.UtcNow.AddDays(-10),
-            ToDate = DateTime.UtcNow.AddDays(-3),
+            FromDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-10),
+            ToDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-3),
             NumOfGuests = 1,
             Status = ReservationStatus.Approved
         });
@@ -266,8 +266,8 @@ public class ReservationsInternalControllerTests : IDisposable
                 UserId = Guid.NewGuid(),
                 AccommodationId = acc1,
                 HostId = hostId,
-                FromDate = DateTime.UtcNow.AddDays(1),
-                ToDate = DateTime.UtcNow.AddDays(5),
+                FromDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1),
+                ToDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(5),
                 NumOfGuests = 2,
                 Status = ReservationStatus.Approved
             },
@@ -276,8 +276,8 @@ public class ReservationsInternalControllerTests : IDisposable
                 UserId = Guid.NewGuid(),
                 AccommodationId = acc2,
                 HostId = hostId,
-                FromDate = DateTime.UtcNow.AddDays(2),
-                ToDate = DateTime.UtcNow.AddDays(8),
+                FromDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(2),
+                ToDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(8),
                 NumOfGuests = 1,
                 Status = ReservationStatus.Pending
             });

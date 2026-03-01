@@ -86,31 +86,31 @@ public class ReservationsControllerTests : IDisposable
             });
 
         _availabilityClient
-            .Setup(x => x.CheckAvailabilityAsync(It.IsAny<Guid>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Setup(x => x.CheckAvailabilityAsync(It.IsAny<Guid>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
             .ReturnsAsync(new AvailabilityCheckResult { IsAvailable = true });
     }
 
-    private CreateReservationRequest MakeRequest(DateTime? from = null, DateTime? to = null, int guests = 2)
+    private CreateReservationRequest MakeRequest(DateOnly? from = null, DateOnly? to = null, int guests = 2)
         => new()
         {
             AccommodationId = _accommodationId,
-            FromDate = from ?? DateTime.UtcNow.AddDays(10),
-            ToDate = to ?? DateTime.UtcNow.AddDays(15),
+            FromDate = from ?? DateOnly.FromDateTime(DateTime.UtcNow).AddDays(10),
+            ToDate = to ?? DateOnly.FromDateTime(DateTime.UtcNow).AddDays(15),
             NumOfGuests = guests
         };
 
     private Reservation SeedReservation(
         ReservationStatus status = ReservationStatus.Pending,
         Guid? guestId = null, Guid? hostId = null, Guid? accommodationId = null,
-        DateTime? from = null, DateTime? to = null)
+        DateOnly? from = null, DateOnly? to = null)
     {
         var r = new Reservation
         {
             UserId = guestId ?? _guestId,
             AccommodationId = accommodationId ?? _accommodationId,
             HostId = hostId ?? _hostId,
-            FromDate = from ?? DateTime.UtcNow.AddDays(10),
-            ToDate = to ?? DateTime.UtcNow.AddDays(15),
+            FromDate = from ?? DateOnly.FromDateTime(DateTime.UtcNow).AddDays(10),
+            ToDate = to ?? DateOnly.FromDateTime(DateTime.UtcNow).AddDays(15),
             NumOfGuests = 2,
             Status = status,
             CreatedBy = (guestId ?? _guestId).ToString()
@@ -189,8 +189,8 @@ public class ReservationsControllerTests : IDisposable
     {
         SetUser(_guestId);
 
-        var from = DateTime.UtcNow.AddDays(10);
-        var to = DateTime.UtcNow.AddDays(15);
+        var from = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(10);
+        var to = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(15);
 
         // Seed an existing pending reservation that overlaps
         var overlapping = SeedReservation(
@@ -222,8 +222,8 @@ public class ReservationsControllerTests : IDisposable
         SetUser(_guestId);
 
         var result = await _sut.Create(MakeRequest(
-            from: DateTime.UtcNow.AddDays(15),
-            to: DateTime.UtcNow.AddDays(10)));
+            from: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(15),
+            to: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(10)));
 
         result.Should().BeOfType<BadRequestObjectResult>();
     }
@@ -234,8 +234,8 @@ public class ReservationsControllerTests : IDisposable
         SetUser(_guestId);
 
         var result = await _sut.Create(MakeRequest(
-            from: DateTime.UtcNow.AddDays(-5),
-            to: DateTime.UtcNow.AddDays(-1)));
+            from: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-5),
+            to: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1)));
 
         result.Should().BeOfType<BadRequestObjectResult>();
     }
@@ -270,7 +270,7 @@ public class ReservationsControllerTests : IDisposable
         SetUser(_guestId);
 
         _availabilityClient
-            .Setup(x => x.CheckAvailabilityAsync(It.IsAny<Guid>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Setup(x => x.CheckAvailabilityAsync(It.IsAny<Guid>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
             .ReturnsAsync(new AvailabilityCheckResult { IsAvailable = false });
 
         var result = await _sut.Create(MakeRequest());
@@ -458,8 +458,8 @@ public class ReservationsControllerTests : IDisposable
         // Starts tomorrow — cannot cancel
         var r = SeedReservation(
             ReservationStatus.Approved,
-            from: DateTime.UtcNow.Date.AddDays(1),
-            to: DateTime.UtcNow.Date.AddDays(3));
+            from: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1),
+            to: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(3));
 
         SetUser(_guestId);
 
@@ -503,8 +503,8 @@ public class ReservationsControllerTests : IDisposable
     [Fact]
     public async Task Approve_RejectsOverlappingPending()
     {
-        var from = DateTime.UtcNow.AddDays(10);
-        var to = DateTime.UtcNow.AddDays(15);
+        var from = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(10);
+        var to = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(15);
 
         var r = SeedReservation(ReservationStatus.Pending, from: from, to: to);
         var overlapping = SeedReservation(
@@ -624,8 +624,8 @@ public class ReservationsControllerTests : IDisposable
         // Past approved reservation
         SeedReservation(
             ReservationStatus.Approved,
-            from: DateTime.UtcNow.AddDays(-10),
-            to: DateTime.UtcNow.AddDays(-5));
+            from: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-10),
+            to: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-5));
 
         var result = await _sut.HasCompletedStay(_guestId, _accommodationId, "Accommodation");
 
@@ -640,8 +640,8 @@ public class ReservationsControllerTests : IDisposable
     {
         SeedReservation(
             ReservationStatus.Approved,
-            from: DateTime.UtcNow.AddDays(-10),
-            to: DateTime.UtcNow.AddDays(-5));
+            from: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-10),
+            to: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-5));
 
         var result = await _sut.HasCompletedStay(_guestId, _hostId, "Host");
 
@@ -657,8 +657,8 @@ public class ReservationsControllerTests : IDisposable
         // Future reservation — not completed yet
         SeedReservation(
             ReservationStatus.Approved,
-            from: DateTime.UtcNow.AddDays(5),
-            to: DateTime.UtcNow.AddDays(10));
+            from: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(5),
+            to: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(10));
 
         var result = await _sut.HasCompletedStay(_guestId, _accommodationId, "Accommodation");
 
