@@ -89,7 +89,7 @@ jobs:
         run: dotnet build --no-restore -c ${{ env.CONFIGURATION }}
 
       - name: Start infra via docker compose
-        if: hashFiles('docker-compose.yml') != ''
+        if: hashFiles('docker-compose.ci.yml') != ''
         run: |
           docker compose up -d postgres mongodb rabbitmq
           for service in postgres mongodb rabbitmq; do
@@ -98,12 +98,12 @@ jobs:
           docker compose ps
 
       - name: Run Integration Tests
-        if: hashFiles('docker-compose.yml') != ''
+        if: hashFiles('docker-compose.ci.yml') != ''
         working-directory: tests/ReservationService.Tests
         run: dotnet test -c ${{ env.CONFIGURATION }} --logger trx
 
       - name: Tear down compose infra
-        if: always() && hashFiles('docker-compose.yml') != ''
+        if: always() && hashFiles('docker-compose.ci.yml') != ''
         run: docker compose down -v
 
   docker-build-push:
