@@ -138,7 +138,7 @@ public class ReservationsController(
     // -------------------------------------------------------
     // GET /api/reservations/mine   (guest's reservations)
     // -------------------------------------------------------
-    [Authorize(Roles = "Guest")]
+    [Authorize]
     [HttpGet("mine")]
     public async Task<IActionResult> GetMyReservations([FromQuery] ReservationStatus? status = null)
     {
