@@ -1,3 +1,4 @@
+using ReservationService.Domain;
 using ReservationService.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Metrics;
@@ -7,6 +8,8 @@ using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,7 +47,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddMassTransit(x =>
 {
-    x.AddConsumers(typeof(Program).Assembly);
+    x.AddConsumers(typeof(ReservationServiceInfrastructure).Assembly);
 
     x.UsingRabbitMq((context, cfg) =>
     {
@@ -58,7 +61,24 @@ builder.Services.AddMassTransit(x =>
     });
 });
 
-builder.Services.AddControllers();
+builder.Services.AddHttpClient<IAccommodationServiceClient, AccommodationServiceClient>(client =>
+{
+    var baseUrl = builder.Configuration["Services:Accommodation"] ?? "http://accommodation-service:8080";
+    client.BaseAddress = new Uri(baseUrl);
+});
+
+builder.Services.AddHttpClient<IAvailabilityServiceClient, AvailabilityServiceClient>(client =>
+{
+    var baseUrl = builder.Configuration["Services:Availability"] ?? "http://availability-service:8080";
+    client.BaseAddress = new Uri(baseUrl);
+});
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
