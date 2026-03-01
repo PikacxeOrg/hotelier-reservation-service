@@ -62,11 +62,52 @@ public class ReservationsInternalController(
 
         return Ok(new CanDeleteResponse { CanDelete = true });
     }
+
+    /// <summary>
+    /// Check whether an accommodation has Approved or Pending reservations
+    /// overlapping a given date range.
+    /// Used by availability-service to enforce "no changes if reservations exist".
+    /// </summary>
+    [HttpGet("has-reservations")]
+    public async Task<IActionResult> HasReservationsInPeriod(
+        [FromQuery] Guid accommodationId,
+        [FromQuery] DateTime fromDate,
+        [FromQuery] DateTime toDate)
+    {
+        var count = await db.Reservations.CountAsync(r =>
+            r.AccommodationId == accommodationId
+            && (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Approved)
+            && r.FromDate < toDate
+            && r.ToDate > fromDate);
+
+        if (count > 0)
+        {
+            logger.LogInformation(
+                "Accommodation {AccommodationId} has {Count} reservation(s) in period {From}-{To}",
+                accommodationId, count, fromDate, toDate);
+
+            return Ok(new HasReservationsResponse
+            {
+                HasReservations = true,
+                Count = count,
+                Reason = $"Cannot modify availability: {count} reservation(s) exist in this period."
+            });
+        }
+
+        return Ok(new HasReservationsResponse { HasReservations = false });
+    }
 }
 
 public class CanDeleteResponse
 {
     public bool CanDelete { get; set; }
     public int ActiveCount { get; set; }
+    public string? Reason { get; set; }
+}
+
+public class HasReservationsResponse
+{
+    public bool HasReservations { get; set; }
+    public int Count { get; set; }
     public string? Reason { get; set; }
 }

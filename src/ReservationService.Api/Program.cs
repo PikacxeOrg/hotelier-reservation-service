@@ -1,3 +1,4 @@
+using ReservationService.Domain;
 using ReservationService.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Metrics;
@@ -58,6 +59,18 @@ builder.Services.AddMassTransit(x =>
 
         cfg.ConfigureEndpoints(context);
     });
+});
+
+builder.Services.AddHttpClient<IAccommodationServiceClient, AccommodationServiceClient>(client =>
+{
+    var baseUrl = builder.Configuration["Services:Accommodation"] ?? "http://accommodation-service:8080";
+    client.BaseAddress = new Uri(baseUrl);
+});
+
+builder.Services.AddHttpClient<IAvailabilityServiceClient, AvailabilityServiceClient>(client =>
+{
+    var baseUrl = builder.Configuration["Services:Availability"] ?? "http://availability-service:8080";
+    client.BaseAddress = new Uri(baseUrl);
 });
 
 builder.Services.AddControllers()
