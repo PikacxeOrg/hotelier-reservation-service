@@ -40,10 +40,12 @@ public class ReservationsInternalController(
         }
         else
         {
-            // Guest (or any other type)
+            // Guest (or any other type) — block on both Pending and Approved,
+            // since a pending reservation that gets approved after deletion
+            // would leave the host with an orphaned request.
             activeCount = await db.Reservations.CountAsync(r =>
                 r.UserId == userId
-                && r.Status == ReservationStatus.Approved
+                && (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Approved)
                 && r.ToDate >= today);
         }
 
@@ -51,7 +53,7 @@ public class ReservationsInternalController(
         {
             var reason = string.Equals(userType, "Host", StringComparison.OrdinalIgnoreCase)
                 ? $"Cannot delete account: you have {activeCount} active or pending reservation(s) on your accommodations."
-                : $"Cannot delete account: you have {activeCount} active reservation(s). Cancel or complete them first.";
+                : $"Cannot delete account: you have {activeCount} active or pending reservation(s). Cancel or complete them first.";
 
             logger.LogInformation(
                 "User {UserId} ({UserType}) cannot delete — {Count} blocking reservations",
