@@ -69,7 +69,7 @@ public class ReservationsInternalControllerTests : IDisposable
         var body = ok.Value.Should().BeOfType<CanDeleteResponse>().Subject;
         body.CanDelete.Should().BeFalse();
         body.ActiveCount.Should().Be(1);
-        body.Reason.Should().Contain("active reservation");
+        body.Reason.Should().Contain("active or pending");
     }
 
     [Fact]
@@ -119,9 +119,9 @@ public class ReservationsInternalControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task CanDelete_Guest_WithPendingReservation_ReturnsTrue()
+    public async Task CanDelete_Guest_WithPendingReservation_ReturnsFalse()
     {
-        // Pending reservations don't block guest deletion — only Approved ones do
+        // Pending reservations block guest deletion (same as Approved)
         var guestId = Guid.NewGuid();
         _db.Reservations.Add(new Reservation
         {
@@ -139,7 +139,9 @@ public class ReservationsInternalControllerTests : IDisposable
 
         var ok = result.Should().BeOfType<OkObjectResult>().Subject;
         var body = ok.Value.Should().BeOfType<CanDeleteResponse>().Subject;
-        body.CanDelete.Should().BeTrue();
+        body.CanDelete.Should().BeFalse();
+        body.ActiveCount.Should().Be(1);
+        body.Reason.Should().Contain("active or pending");
     }
 
     [Fact]

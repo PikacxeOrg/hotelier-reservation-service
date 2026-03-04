@@ -53,12 +53,27 @@ public class ReservationsController(
                 message = $"Number of guests must be between {accommodation.MinGuests} and {accommodation.MaxGuests}."
             });
 
-        // Check availability
+        // Check availability (window coverage + pricing)
         var availability = await availabilityClient.CheckAvailabilityAsync(
             request.AccommodationId, request.FromDate, request.ToDate);
 
         if (!availability.IsAvailable)
             return Conflict(new { message = "Accommodation is not available for the selected dates." });
+
+        // Synchronous overlap guard: reject if an Approved reservation already
+        // covers any part of the requested period.  This is necessary because
+        // the availability-service marks windows unavailable via an async event
+        // (ReservationApproved → RabbitMQ → consumer), so there is a race window
+        // during which the availability check above can return IsAvailable = true
+        // even though a reservation was just approved.
+        var hasApprovedOverlap = await db.Reservations.AnyAsync(r =>
+            r.AccommodationId == request.AccommodationId
+            && r.Status == ReservationStatus.Approved
+            && r.FromDate < request.ToDate
+            && r.ToDate > request.FromDate);
+
+        if (hasApprovedOverlap)
+            return Conflict(new { message = "These dates are already reserved by another guest." });
 
         var reservation = new Reservation
         {
