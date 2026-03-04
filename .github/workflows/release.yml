@@ -1,0 +1,94 @@
+name: Release
+
+# Manually triggered from the GitHub Actions UI.
+#
+# GitVersion reads GitVersion.yml + git history to compute the next version
+# automatically — no manual bump type needed.
+#
+# Bump rules (from GitVersion.yml):
+#   major  ->  any type with '!'  OR  commit body contains "+semver:breaking"
+#   minor  ->  feature: / feature(scope):
+#   patch  ->  fix: / chore: / refactor: / docs: / test: / style: / perf: / ci: / build:
+#
+# Following: https://semver.org/
+# GitVersion:  https://gitversion.net/
+
+on:
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: "Pre-release label (leave empty for stable, e.g. 'rc.1', 'beta.2')"
+        required: false
+        default: ""
+
+permissions:
+  contents: write   # push tag + release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ----------------------------------------------------------------
+      # 1. Let GitVersion compute the next version from git history
+      # ----------------------------------------------------------------
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3.0.4
+        with:
+          versionSpec: '6.x'
+          preferLatestVersion: true
+
+      - name: Determine version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3.0.4
+        with:
+          useConfigFile: true
+
+      # ----------------------------------------------------------------
+      # 2. Build the final version string (apply optional pre-release label)
+      # ----------------------------------------------------------------
+      - name: Build version tag
+        id: ver
+        run: |
+          base="${{ steps.gitversion.outputs.majorMinorPatch }}"
+          prerelease="${{ inputs.prerelease }}"
+          if [[ -n "$prerelease" ]]; then
+            version="$base-$prerelease"
+          else
+            version="$base"
+          fi
+          echo "version=$version"   >> "$GITHUB_OUTPUT"
+          echo "tag=v$version"      >> "$GITHUB_OUTPUT"
+          echo "Releasing: $version"
+
+      # ----------------------------------------------------------------
+      # 3. Push the semver tag
+      # ----------------------------------------------------------------
+      - name: Configure git
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Tag and push
+        run: |
+          tag="${{ steps.ver.outputs.tag }}"
+          git tag "$tag" -m "Release $tag"
+          git push origin "$tag"
+
+      # ----------------------------------------------------------------
+      # 4. Create GitHub Release with auto-generated changelog
+      # ----------------------------------------------------------------
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: ${{ steps.ver.outputs.tag }}
+          generate_release_notes: true
+          prerelease: ${{ inputs.prerelease != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

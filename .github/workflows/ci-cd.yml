@@ -1,10 +1,9 @@
-name: Service CI/CD
+name: CI/CD
 
 on:
   push:
     branches: [main, develop]
-    tags:
-      - "v*.*.*"
+    tags: ["v*.*.*"]
   pull_request:
     branches: [main, develop]
 
@@ -12,13 +11,27 @@ env:
   DOTNET_VERSION: "9.0.x"
   CONFIGURATION: Release
   REGISTRY: docker.io
-  DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+  IMAGE_NAME: hotelier-reservation-service
 
 jobs:
-  build-test:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3.0.4
+        with:
+          versionSpec: '6.x'
+          preferLatestVersion: true
+
+      - name: Determine version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3.0.4
+        with:
+          useConfigFile: true
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -30,34 +43,48 @@ jobs:
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+          restore-keys: nuget-${{ runner.os }}-
 
-      - name: Restore Domain
-        working-directory: src/ReservationService.Domain
-        run: dotnet restore --locked-mode
+      - name: Restore
+        run: dotnet restore tests/ReservationService.Tests/ReservationService.Tests.csproj
 
-      - name: Restore Infrastructure
-        working-directory: src/ReservationService.Infrastructure
-        run: dotnet restore --locked-mode
+      - name: Build
+        run: dotnet build tests/ReservationService.Tests/ReservationService.Tests.csproj -c ${{ env.CONFIGURATION }} --no-restore
 
-      - name: Restore Api
-        working-directory: src/ReservationService.Api
-        run: dotnet restore --locked-mode
+      - name: Test
+        run: |
+          dotnet test tests/ReservationService.Tests/ReservationService.Tests.csproj \
+            -c ${{ env.CONFIGURATION }} --no-build \
+            --logger trx \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./coverage
 
-      - name: Build Api
-        working-directory: src/ReservationService.Api
-        run: dotnet build --no-restore -c ${{ env.CONFIGURATION }}
-
-      - name: Unit Tests
-        working-directory: tests/ReservationService.Tests
-        run: dotnet test -c ${{ env.CONFIGURATION }} --logger trx --collect:"XPlat Code Coverage"
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: ./coverage
 
   integration-tests:
-    needs: build-test
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3.0.4
+        with:
+          versionSpec: '6.x'
+          preferLatestVersion: true
+
+      - name: Determine version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3.0.4
+        with:
+          useConfigFile: true
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -69,8 +96,7 @@ jobs:
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+          restore-keys: nuget-${{ runner.os }}-
 
       - name: Restore Domain
         working-directory: src/ReservationService.Domain
@@ -107,52 +133,43 @@ jobs:
         run: docker compose down -v
 
   docker-build-push:
-    needs: [build-test, integration-tests]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v'))
+    needs: [test, integration-tests]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set version tags
-        id: ver
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3.0.4
+        with:
+          versionSpec: '6.x'
+          preferLatestVersion: true
+
+      - name: Determine version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3.0.4
+        with:
+          useConfigFile: true
+
+      - name: Write Kaniko docker config
         run: |
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/}"
-            echo "version=${VERSION}" >> $GITHUB_OUTPUT
-            echo "tags=${VERSION},latest" >> $GITHUB_OUTPUT
-          else
-            BRANCH="${GITHUB_REF#refs/heads/}"
-            echo "version=${BRANCH}" >> $GITHUB_OUTPUT
-            echo "tags=${BRANCH}" >> $GITHUB_OUTPUT
-          fi
+          mkdir -p "${{ GITHUB_WORKSPACE }}/.kaniko"
+          printf '{"auths":{"https://index.docker.io/v1/":{"auth":"%s"}}}' \
+            "$(printf '%s:%s' '${{ secrets.DOCKERHUB_USERNAME }}' '${{ secrets.DOCKERHUB_TOKEN }}' | base64 -w0)" \
+            > "${{ GITHUB_WORKSPACE }}/.kaniko/config.json"
 
-      - name: Login to DockerHub
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+      - name: Build and push
+        uses: docker://gcr.io/kaniko-project/executor:v1.23.0
+        env:
+          DOCKER_CONFIG: /github/workspace/.kaniko
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Docker Buildx setup
-        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
-
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: buildx-${{ runner.os }}-${{ hashFiles('Dockerfile', '**/docker-compose*.yml') }}
-          restore-keys: |
-            buildx-${{ runner.os }}-
-
-      - name: Build and Push
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198571cfb76f00 # v6
-        with:
-          context: .
-          file: Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.DOCKERHUB_USER }}/${{ github.event.repository.name }}:${{ steps.ver.outputs.tags }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          args: >-
+            --dockerfile=/github/workspace/Dockerfile
+            --context=dir:///github/workspace
+            --destination=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.gitversion.outputs.semVer }}
+            ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && format('--destination={0}/{1}:latest', secrets.DOCKERHUB_USERNAME, env.IMAGE_NAME) || '' }}
+            --build-arg=VERSION=${{ steps.gitversion.outputs.semVer }}
+            --cache=true
+            --cache-repo=${{ secrets.DOCKERHUB_USERNAME }}/kaniko-cache
