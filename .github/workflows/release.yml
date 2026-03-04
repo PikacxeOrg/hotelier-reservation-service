@@ -38,14 +38,14 @@ jobs:
       # 1. Let GitVersion compute the next version from git history
       # ----------------------------------------------------------------
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v3.0.4
+        uses: gittools/actions/gitversion/setup@81f0bc44e27a689ce858668d7a2081ac2387b605
         with:
           versionSpec: '6.x'
           preferLatestVersion: true
 
       - name: Determine version
         id: gitversion
-        uses: gittools/actions/gitversion/execute@v3.0.4
+        uses: gittools/actions/gitversion/execute@81f0bc44e27a689ce858668d7a2081ac2387b605
         with:
           useConfigFile: true
 
