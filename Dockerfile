@@ -2,6 +2,7 @@
 # 1) Build stage
 # --------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+ARG VERSION=1.0.0
 WORKDIR /src
 
 # Copy csproj files to maximize layer cache hits
@@ -15,7 +16,7 @@ COPY src/ ./src/
 
 # Publish with trimming for smaller output
 RUN dotnet publish ./src/ReservationService.Api/ReservationService.Api.csproj \
-    -c Release -o /app/publish /p:UseAppHost=false /p:SelfContained=false
+    -c Release -o /app/publish /p:UseAppHost=false /p:SelfContained=false /p:Version=$VERSION
 
 # --------------------------------------------------------
 # 2) Runtime stage
