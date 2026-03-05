@@ -242,7 +242,7 @@ public class ReservationsController(
 
         // Spec 1.9: at least 1 day before start
         var dayBeforeStart = reservation.FromDate.AddDays(-1);
-        if (DateOnly.FromDateTime(DateTime.UtcNow) > dayBeforeStart)
+        if (DateOnly.FromDateTime(DateTime.UtcNow) >= dayBeforeStart)
             return Conflict(new { message = "Cancellation must be at least 1 day before the start date." });
 
         reservation.Status = ReservationStatus.Cancelled;
