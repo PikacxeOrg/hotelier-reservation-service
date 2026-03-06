@@ -1,0 +1,117 @@
+# GitVersion configuration for Hotelier
+# Workflow: GitFlow  (main + develop + feature/* + release/* + hotfix/*)
+# Semver spec: https://semver.org/
+# Docs:        https://gitversion.net/docs/reference/configuration
+
+workflow: GitFlow/v1
+
+assembly-versioning-scheme: MajorMinorPatch
+assembly-file-versioning-scheme: MajorMinorPatch
+assembly-informational-format: "{FullSemVer}"
+
+tag-prefix: "[vV]?"
+semantic-version-format: Strict
+
+commit-date-format: "yyyy-MM-dd"
+
+# ---------------------------------------------------------------
+# Bump rules — matched against the commit subject line (regex)
+# ---------------------------------------------------------------
+# major  → any commit with '!' after type  OR  explicit +semver:breaking
+# minor  → feature: / feature(scope):
+# patch  → fix:/chore:/refactor:/docs:/test:/style:/perf:/ci:/build:
+# none   → +semver:skip
+major-version-bump-message: '^(\w+)(\(.+\))?!:.*$|^\+semver:\s?(breaking|major)'
+minor-version-bump-message: '^feature(\(.+\))?(!)?:.*$|^\+semver:\s?(feature|minor)'
+patch-version-bump-message: '^(fix|chore|refactor|docs|test|style|perf|ci|build)(\(.+\))?:.*$|^\+semver:\s?(fix|patch)'
+no-bump-message: '^\+semver:\s?(none|skip)'
+
+tag-pre-release-weight: 60000
+
+strategies:
+  - Fallback
+  - MergeMessage
+  - TaggedCommit
+  - TrackReleaseBranches
+  - VersionInBranchName
+
+branches:
+  main:
+    regex: ^master$|^main$
+    label: ""
+    increment: Patch
+    prevent-increment:
+      of-merged-branch: true
+    track-merge-target: false
+    track-merge-message: true
+    source-branches:
+      - develop
+      - release
+    is-release-branch: true
+    is-main-branch: true
+
+  develop:
+    regex: ^dev(elop)?(ment)?$
+    label: alpha
+    increment: Minor
+    prevent-increment:
+      of-merged-branch: false
+      when-current-commit-tagged: false
+    track-merge-target: true
+    track-merge-message: true
+    source-branches: []
+    is-release-branch: false
+    is-main-branch: false
+
+  feature:
+    regex: ^features?[/-]
+    label: "{BranchName}"
+    increment: Inherit
+    source-branches:
+      - develop
+      - main
+      - release
+      - feature
+      - support
+      - hotfix
+
+  release:
+    regex: ^releases?[/-]
+    label: rc
+    increment: Patch
+    prevent-increment:
+      of-merged-branch: true
+    track-merge-target: false
+    track-merge-message: true
+    source-branches:
+      - develop
+      - main
+      - support
+      - release
+    is-release-branch: true
+
+  hotfix:
+    regex: ^hotfix(es)?[/-]
+    label: beta
+    increment: Patch
+    prevent-increment:
+      of-merged-branch: true
+    track-merge-target: false
+    track-merge-message: true
+    source-branches:
+      - develop
+      - main
+      - release
+      - support
+
+  pull-request:
+    regex: ^(pull|pull\-requests|pr)[/-]
+    label: PullRequest
+    increment: Inherit
+    source-branches:
+      - develop
+      - main
+      - release
+      - feature
+      - support
+      - hotfix

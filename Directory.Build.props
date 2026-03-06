@@ -1,0 +1,25 @@
+<Project>
+  <PropertyGroup>
+    <!--
+      Version is computed automatically by GitVersion.MsBuild from git history.
+      GitVersion reads GitVersion.yml at the repo root.
+
+      Local dev fallback (no git / no GitVersion installed): 0.1.0-local
+      CI:  gittools/actions/gitversion/execute sets GitVersion_SemVer before
+           dotnet build, so GitVersion.MsBuild picks it up automatically.
+    -->
+    <AssemblyInformationalVersion Condition="'$(AssemblyInformationalVersion)' == ''">0.1.0-local</AssemblyInformationalVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      GitVersion.MsBuild hooks into the build pipeline and sets
+      Version / AssemblyVersion / FileVersion / InformationalVersion
+      from git history + GitVersion.yml — no manual /p:Version= needed.
+    -->
+    <PackageReference Include="GitVersion.MsBuild" Version="6.1.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>
