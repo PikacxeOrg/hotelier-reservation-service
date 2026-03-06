@@ -458,8 +458,8 @@ public class ReservationsControllerTests : IDisposable
         // Starts tomorrow — cannot cancel
         var r = SeedReservation(
             ReservationStatus.Approved,
-            from: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1),
-            to: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(3));
+            from: DateOnly.FromDateTime(DateTime.Today).AddDays(1),
+            to: DateOnly.FromDateTime(DateTime.Today).AddDays(3));
 
         SetUser(_guestId);
 

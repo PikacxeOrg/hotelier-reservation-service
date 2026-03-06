@@ -241,7 +241,8 @@ public class ReservationsController(
             return Conflict(new { message = "Only approved reservations can be cancelled." });
 
         // Spec 1.9: at least 1 day before start
-        if (reservation.FromDate <= DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1))
+        var dayBeforeStart = reservation.FromDate.AddDays(-1);
+        if (DateOnly.FromDateTime(DateTime.UtcNow) >= dayBeforeStart)
             return Conflict(new { message = "Cancellation must be at least 1 day before the start date." });
 
         reservation.Status = ReservationStatus.Cancelled;
@@ -341,6 +342,24 @@ public class ReservationsController(
         logger.LogInformation("Reservation {Id} rejected by host {HostId}", id, hostId);
 
         return Ok(MapResponse(reservation));
+    }
+
+    // -------------------------------------------------------
+    // GET /api/reservations/booked?accommodationId={id}
+    // Public: approved date ranges for an accommodation.
+    // Used by the booking page to cross-check availability windows.
+    // -------------------------------------------------------
+    [AllowAnonymous]
+    [HttpGet("booked")]
+    public async Task<IActionResult> GetBookedRanges([FromQuery] Guid accommodationId)
+    {
+        var ranges = await db.Reservations
+            .Where(r => r.AccommodationId == accommodationId
+                        && r.Status == ReservationStatus.Approved)
+            .Select(r => new { r.FromDate, r.ToDate })
+            .ToListAsync();
+
+        return Ok(ranges);
     }
 
     // -------------------------------------------------------
